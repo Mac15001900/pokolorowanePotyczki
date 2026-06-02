@@ -138,7 +138,7 @@ function buildGrid() {
     const pos = e.data.getLocalPosition(gridContainer);
     const col = Math.floor(pos.x / ts);
     const row = Math.floor(pos.y / ts);
-    if (col < 0 || row < 0 || col >= cols || row >= rows || !game.canMoveAt(col, row)) {
+    if (col < 0 || row < 0 || col >= cols || row >= rows || !game.canMoveAt(col, row) || !canPlay()) {
       highlight.visible = false;
       return;
     }
@@ -203,6 +203,11 @@ function drawAllTokens() {
   }
 }
 
+function updateBoard() {
+  drawAllTokens();
+  drawBorder();
+}
+
 // Returns [dx, dy] offsets for `n` dots arranged in a centered grid
 function getDotPositions(n, spread) {
   const cols = Math.ceil(Math.sqrt(n));
@@ -233,7 +238,9 @@ function getDotPositions(n, spread) {
 // Increment counter on a tile; clicking past max (10) resets to 0
 function clickTile(col, row) {
   if (col < 0 || row < 0 || col >= config.cols || row >= config.rows) return;
+  if (!canPlay()) return;
   if (!game.canMoveAt(col, row)) return;
+  sendMessage('move', { col, row });
   game.move(col, row);
   game.resolveAll();
   drawAllTokens();
@@ -243,6 +250,12 @@ function clickTile(col, row) {
 function drawBorder() {
   let color = parseInt(PLAYER_COLORS[game.currentTurn], 16);
   let text = `Tura gracza ${PLAYER_NAMES_DOPEŁNIACZ[game.currentTurn]}.`;
+  if (game.currentTurn === window.userPlayerId) text = "Twoja tura.";
+  if (window.members) {
+    if (members.length === 1) text = "Oczekiwanie na drugiego gracza...";
+  } else {
+    text = "Łączenie...";
+  }
   let victor = game.getVictor();
   if (victor) {
     text = `Wygrywa gracz ${PLAYER_NAMES_MIANOWNIK[victor]}!`;
@@ -295,14 +308,19 @@ function drawBorder() {
     btn.on('pointerover', () => bg.tint = 0xbbbbbb);
     btn.on('pointerout', () => bg.tint = 0xffffff);
     btn.on('pointerdown', () => {
-      game.reset();
-      drawAllTokens();
-      drawBorder();
+      sendMessage('reset');
+      // game.reset();
+      // drawAllTokens();
+      // drawBorder();
     });
 
     app.boardContainer.addChild(btn);
     app.resetButton = btn;
   }
+}
+
+function canPlay() {
+  return !game.isGameOver() && game.currentTurn === window.userPlayerId && members.length >= 2;
 }
 
 function setupInteraction() {
