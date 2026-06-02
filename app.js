@@ -5,11 +5,19 @@ const stageEl = document.getElementById('stage');
 
 let app, gridContainer, tokensContainer;
 let config = {
-  cols: 7,
-  rows: 7,
+  cols: 5,
+  rows: 5,
   tileSize: 64
 };
 const game = new Game({ width: config.cols, height: config.rows });
+const UI_COLORS = {
+  grid: "fcf0cc",
+  background: "46494c",
+  extra: "d90368",
+  validHiglight: "66ff66",
+  inValidHiglight: "ff6666",
+}
+const PLAYER_COLORS = ["fcf0cc", "009ffd", "f76c5e"]
 
 // simple 2D array to hold tokens (null or object)
 let tokenMap = [];
@@ -120,11 +128,12 @@ function buildGrid() {
       highlight.visible = false;
       return;
     }
+    let highlightColor = game.canMoveAt(col, row) ? UI_COLORS.validHiglight : UI_COLORS.inValidHiglight;
     highlight.visible = true;
     highlight.clear();
-    highlight.setStrokeStyle({ width: 2, color: 0xffff66, alpha: 0.8 });
+    highlight.setStrokeStyle({ width: 2, color: highlightColor, alpha: 0.8 });
     highlight.rect(col * ts + 1, row * ts + 1, ts - 2, ts - 2);
-    highlight.fill({ color: 0xffff66, alpha: 0.08 });
+    highlight.fill({ color: highlightColor, alpha: 0.08 });
     highlight.stroke();
   });
 
@@ -136,7 +145,7 @@ function buildGrid() {
     const pos = e.data.getLocalPosition(gridContainer);
     const col = Math.floor(pos.x / ts);
     const row = Math.floor(pos.y / ts);
-    toggleTokenAt(col, row);
+    clickTile(col, row);
   });
 }
 
@@ -164,7 +173,8 @@ function drawAllTokens() {
       const radius = Math.floor((ts - padding * 2) / 2);
 
       const g = new PIXI.Graphics();
-      g.circle(cx, cy, radius).fill(0x66ccff);
+      let mainColor = [0x66ccff, 0xff5500][game.getTile(c, r).color - 1];
+      g.circle(cx, cy, radius).fill(mainColor);
 
       // arrange dots in a grid-like pattern centered on the circle
       const dotR = Math.max(2, Math.floor(radius * 0.12));
@@ -207,10 +217,11 @@ function getDotPositions(n, spread) {
 }
 
 // Increment counter on a tile; clicking past max (10) resets to 0
-function toggleTokenAt(col, row) {
+function clickTile(col, row) {
   if (col < 0 || row < 0 || col >= config.cols || row >= config.rows) return;
+  if (!game.canMoveAt(col, row)) return;
   // tokenMap[row][col] = (tokenMap[row][col] + 1) % 11;
-  game.addToTile(col, row, 1, 1);
+  game.move(col, row);
   game.resolveAll();
   drawAllTokens();
 }

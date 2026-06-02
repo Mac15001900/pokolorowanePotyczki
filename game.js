@@ -1,9 +1,11 @@
 const DEFAULT_CONFIG = {
-    width: 7,
-    height: 7,
+    width: 5,
+    height: 5,
     maxValue: 4,
     splitAt: 4,
     multiplyAtLargeSplits: false,
+    amountOfPlayers: 2,
+    startingPositions: [[{ x: 1, y: 3, value: 3 }], [{ x: 3, y: 1, value: 3 }], [{ x: 1, y: 1, value: 3 }], [{ x: 3, y: 3, value: 3 }]]
 }
 
 class Game {
@@ -16,11 +18,28 @@ class Game {
                 color: 0,
             }
         }
+        this.currentTurn = 1;
+        for (let playerId = 1; playerId <= this.config.amountOfPlayers; playerId++) {
+            for (let i = 0; i < this.config.startingPositions[playerId - 1].length; i++) {
+                const { x, y, value } = this.config.startingPositions[playerId - 1][i];
+                if (x === undefined || y == undefined || value == undefined) console.error("No starting position specified for player " + playerId);
+                this.addToTile(x, y, value, playerId);
+            }
+        }
+    }
+
+    canMoveAt(x, y) {
+        return this.getTile(x, y).color === this.currentTurn;
+    }
+
+    move(x, y) {
+        this.addToTile(x, y, 1, this.currentTurn);
+        this.currentTurn = this.currentTurn % this.config.amountOfPlayers + 1;
     }
 
     addToTile(x, y, value, color) {
         let tile = this.getTile(x, y);
-        tile.value++;
+        tile.value += value;
         tile.color = color;
     }
 
