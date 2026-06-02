@@ -14,10 +14,14 @@ const UI_COLORS = {
   grid: "fcf0cc",
   background: "46494c",
   extra: "d90368",
-  validHiglight: "66ff66",
-  inValidHiglight: "ff6666",
+  validHiglight: "ffffff",
+  inValidHiglight: "333355",
+  // validHiglight: "66ff66",
+  // inValidHiglight: "ff6666",
 }
 const PLAYER_COLORS = ["fcf0cc", "009ffd", "f76c5e"]
+const PLAYER_NAMES_MIANOWNIK = ["neutralny", "niebieski", "czerwony"];
+const PLAYER_NAMES_DOPEŁNIACZ = ["neutralnego", "niebieskiego", "czerwonego"];
 
 // simple 2D array to hold tokens (null or object)
 let tokenMap = [];
@@ -53,12 +57,12 @@ async function initPixi() {
   app.boardContainer = boardContainer;
 
   initTokenMap();
-  buildGrid();        // draws grid into gridContainer at 0,0 sized to board size
+  buildGrid();
   centerBoardInStage();
   setupInteraction();
   drawAllTokens();
+  drawBorder();
 
-  // recenter on resize
   window.requestAnimationFrame(() => centerBoardInStage());
 }
 
@@ -124,11 +128,11 @@ function buildGrid() {
     const pos = e.data.getLocalPosition(gridContainer);
     const col = Math.floor(pos.x / ts);
     const row = Math.floor(pos.y / ts);
-    if (col < 0 || row < 0 || col >= cols || row >= rows) {
+    if (col < 0 || row < 0 || col >= cols || row >= rows || !game.canMoveAt(col, row)) {
       highlight.visible = false;
       return;
     }
-    let highlightColor = game.canMoveAt(col, row) ? UI_COLORS.validHiglight : UI_COLORS.inValidHiglight;
+    let highlightColor = UI_COLORS.validHiglight;
     highlight.visible = true;
     highlight.clear();
     highlight.setStrokeStyle({ width: 2, color: highlightColor, alpha: 0.8 });
@@ -220,10 +224,40 @@ function getDotPositions(n, spread) {
 function clickTile(col, row) {
   if (col < 0 || row < 0 || col >= config.cols || row >= config.rows) return;
   if (!game.canMoveAt(col, row)) return;
-  // tokenMap[row][col] = (tokenMap[row][col] + 1) % 11;
   game.move(col, row);
   game.resolveAll();
   drawAllTokens();
+  drawBorder();
+}
+
+function drawBorder() {
+  let color = parseInt(PLAYER_COLORS[game.currentTurn], 16);
+  let text = `Tura gracza ${PLAYER_NAMES_DOPEŁNIACZ[game.currentTurn]}.`;
+  let victor = game.getVictor();
+  if (victor) {
+    text = `Wygrywa gracz ${PLAYER_NAMES_MIANOWNIK[victor]}!`;
+    color = parseInt(PLAYER_COLORS[victor], 16);
+  }
+
+  if (app.boardBorder) app.boardBorder.destroy();
+  const border = new PIXI.Graphics();
+  const pad = 4;
+  border.setStrokeStyle({ width: pad * 2, color });
+  border.rect(-pad, -pad, config.cols * config.tileSize + pad * 2, config.rows * config.tileSize + pad * 2);
+  border.stroke();
+  app.boardContainer.addChildAt(border, 0);
+  app.boardBorder = border;
+
+  if (app.turnLabel) app.turnLabel.destroy();
+  const label = new PIXI.Text({
+    text: text,
+    style: { fill: color, fontSize: 18, fontWeight: 'bold' }
+  });
+  label.anchor.set(0.5, 0);
+  label.x = (config.cols * config.tileSize) / 2;
+  label.y = config.rows * config.tileSize + 12;
+  app.boardContainer.addChild(label);
+  app.turnLabel = label;
 }
 
 function setupInteraction() {

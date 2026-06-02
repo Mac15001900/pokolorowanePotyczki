@@ -29,6 +29,7 @@ class Game {
     }
 
     canMoveAt(x, y) {
+        if (this.getVictor()) return false;
         return this.getTile(x, y).color === this.currentTurn;
     }
 
@@ -57,7 +58,7 @@ class Game {
     }
 
     isResolved() {
-        return this.tiles.every(t => t.value < this.config.splitAt);
+        return this.tiles.every(t => t.value < this.config.splitAt) || this.getVictor();
     }
 
     resolveAll() {
@@ -69,6 +70,12 @@ class Game {
                 return;
             }
         }
+    }
+
+    getVictor() {
+        let color = this.tiles.find(t => t.color > 0).color;
+        if (this.tiles.every(t => t.color === color || t.color === 0)) return color;
+        else return 0;
     }
 
     splitTile(x, y) {
