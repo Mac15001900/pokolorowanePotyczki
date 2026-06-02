@@ -18,7 +18,11 @@ class Game {
                 color: 0,
             }
         }
+        this.addStartingPositions();
         this.currentTurn = 1;
+    }
+
+    addStartingPositions() {
         for (let playerId = 1; playerId <= this.config.amountOfPlayers; playerId++) {
             for (let i = 0; i < this.config.startingPositions[playerId - 1].length; i++) {
                 const { x, y, value } = this.config.startingPositions[playerId - 1][i];
@@ -29,7 +33,7 @@ class Game {
     }
 
     canMoveAt(x, y) {
-        if (this.getVictor()) return false;
+        if (this.isGameOver()) return false;
         return this.getTile(x, y).color === this.currentTurn;
     }
 
@@ -78,6 +82,10 @@ class Game {
         else return 0;
     }
 
+    isGameOver() {
+        return this.getVictor() > 0;
+    }
+
     splitTile(x, y) {
         let tile = this.getTile(x, y);
         let neighbors = [
@@ -98,5 +106,7 @@ class Game {
             t.value = 0;
             t.color = 0;
         })
+        this.addStartingPositions();
+        this.currentTurn = 1;
     }
 }

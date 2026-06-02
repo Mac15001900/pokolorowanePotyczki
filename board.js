@@ -7,8 +7,18 @@ let app, gridContainer, tokensContainer;
 let config = {
   cols: 5,
   rows: 5,
-  tileSize: 64
+  baseTileSize: 64
 };
+updateTileSize();
+
+function updateTileSize() {
+  if (config.baseTileSize * config.cols > window.innerWidth) {
+    config.tileSize = Math.floor(window.innerWidth / config.cols) - 1;
+  } else {
+    config.tileSize = config.baseTileSize;
+  }
+}
+
 const game = new Game({ width: config.cols, height: config.rows });
 const UI_COLORS = {
   grid: "fcf0cc",
@@ -258,6 +268,41 @@ function drawBorder() {
   label.y = config.rows * config.tileSize + 12;
   app.boardContainer.addChild(label);
   app.turnLabel = label;
+
+  if (app.resetButton) app.resetButton.destroy();
+  if (victor) {
+    const btn = new PIXI.Container();
+    btn.interactive = true;
+    btn.cursor = 'pointer';
+
+    const bg = new PIXI.Graphics();
+    const bw = 140, bh = 36;
+    bg.roundRect(0, 0, bw, bh, 8).fill(color);
+    btn.addChild(bg);
+
+    const btnLabel = new PIXI.Text({
+      text: 'Zagraj ponownie',
+      style: { fill: 0x111111, fontSize: 16, fontWeight: 'bold' }
+    });
+    btnLabel.anchor.set(0.5);
+    btnLabel.x = bw / 2;
+    btnLabel.y = bh / 2;
+    btn.addChild(btnLabel);
+
+    btn.x = (config.cols * config.tileSize - bw) / 2;
+    btn.y = config.rows * config.tileSize + 42;
+
+    btn.on('pointerover', () => bg.tint = 0xbbbbbb);
+    btn.on('pointerout', () => bg.tint = 0xffffff);
+    btn.on('pointerdown', () => {
+      game.reset();
+      drawAllTokens();
+      drawBorder();
+    });
+
+    app.boardContainer.addChild(btn);
+    app.resetButton = btn;
+  }
 }
 
 function setupInteraction() {
