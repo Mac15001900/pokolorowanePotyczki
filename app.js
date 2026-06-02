@@ -1,19 +1,15 @@
 // PixiJS Grid Base — app.js
-// Uses Pixi v7+ (CDN in index.html)
+// Uses Pixi v8
 
 const stageEl = document.getElementById('stage');
-const colsInput = document.getElementById('cols');
-const rowsInput = document.getElementById('rows');
-const tileSizeInput = document.getElementById('tileSize');
-const applyBtn = document.getElementById('apply');
-const clearBtn = document.getElementById('clear');
 
 let app, gridContainer, tokensContainer;
 let config = {
-  cols: parseInt(colsInput.value, 10),
-  rows: parseInt(rowsInput.value, 10),
-  tileSize: parseInt(tileSizeInput.value, 10)
+  cols: 7,
+  rows: 7,
+  tileSize: 64
 };
+const game = new Game({ width: config.cols, height: config.rows });
 
 // simple 2D array to hold tokens (null or object)
 let tokenMap = [];
@@ -141,7 +137,6 @@ function buildGrid() {
     const col = Math.floor(pos.x / ts);
     const row = Math.floor(pos.y / ts);
     toggleTokenAt(col, row);
-    console.log(`Clicked tile: ${col}, ${row}`);
   });
 }
 
@@ -149,7 +144,7 @@ function buildGrid() {
 function initTokenMap() {
   tokenMap = new Array(config.rows);
   for (let r = 0; r < config.rows; r++) {
-    tokenMap[r] = new Array(config.cols).fill(null);
+    tokenMap[r] = new Array(config.cols).fill(0);
   }
 }
 
@@ -160,28 +155,63 @@ function drawAllTokens() {
 
   for (let r = 0; r < config.rows; r++) {
     for (let c = 0; c < config.cols; c++) {
-      const t = tokenMap[r][c];
-      if (t) {
-        const circle = new PIXI.Graphics();
-        const padding = Math.floor(ts * 0.12);
-        const radius = Math.floor((ts - padding * 2) / 2);
-        circle.circle(c * ts + ts / 2, r * ts + ts / 2, radius).fill(t.color);
-        tokensContainer.addChild(circle);
+      const count = game.getTile(c, r).value;
+      if (!count) continue;
+
+      const cx = c * ts + ts / 2;
+      const cy = r * ts + ts / 2;
+      const padding = Math.floor(ts * 0.12);
+      const radius = Math.floor((ts - padding * 2) / 2);
+
+      const g = new PIXI.Graphics();
+      g.circle(cx, cy, radius).fill(0x66ccff);
+
+      // arrange dots in a grid-like pattern centered on the circle
+      const dotR = Math.max(2, Math.floor(radius * 0.12));
+      const spread = radius * 0.55;
+      const positions = getDotPositions(count, spread);
+      for (const [dx, dy] of positions) {
+        g.circle(cx + dx, cy + dy, dotR).fill(0xffffff);
       }
+
+      tokensContainer.addChild(g);
     }
   }
 }
 
-// Toggle token on a tile (left click) — places or removes
+// Returns [dx, dy] offsets for `n` dots arranged in a centered grid
+function getDotPositions(n, spread) {
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const stepX = cols > 1 ? spread * 2 / (cols - 1) : 0;
+  const stepY = rows > 1 ? spread * 2 / (rows - 1) : 0;
+  const offsetX = cols > 1 ? -spread : 0;
+  const offsetY = rows > 1 ? -spread : 0;
+
+  const positions = [];
+  for (let i = 0; i < n; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    positions.push([offsetX + col * stepX, offsetY + row * stepY]);
+  }
+  // center the last row if incomplete
+  const lastRowCount = n % cols || cols;
+  if (lastRowCount < cols) {
+    const shift = (cols - lastRowCount) * stepX / 2;
+    const lastRowStart = n - lastRowCount;
+    for (let i = lastRowStart; i < n; i++) {
+      positions[i][0] += shift;
+    }
+  }
+  return positions;
+}
+
+// Increment counter on a tile; clicking past max (10) resets to 0
 function toggleTokenAt(col, row) {
   if (col < 0 || row < 0 || col >= config.cols || row >= config.rows) return;
-
-  if (tokenMap[row][col]) {
-    tokenMap[row][col] = null;
-  } else {
-    // simple token object; later game logic can expand this
-    tokenMap[row][col] = { color: 0x66ccff };
-  }
+  // tokenMap[row][col] = (tokenMap[row][col] + 1) % 11;
+  game.addToTile(col, row, 1, 1);
+  game.resolveAll();
   drawAllTokens();
 }
 
@@ -190,20 +220,6 @@ function setupInteraction() {
     ev.preventDefault();
   });
 }
-
-// Wire up UI controls
-applyBtn.addEventListener('click', () => {
-  config.cols = Math.max(3, parseInt(colsInput.value, 10) || 10);
-  config.rows = Math.max(3, parseInt(rowsInput.value, 10) || 8);
-  config.tileSize = Math.max(16, parseInt(tileSizeInput.value, 10) || 64);
-  initTokenMap();
-  initPixi();
-});
-
-clearBtn.addEventListener('click', () => {
-  initTokenMap();
-  drawAllTokens();
-});
 
 // handle window resize to recenter/scale canvas
 window.addEventListener('resize', () => {
