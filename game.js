@@ -34,7 +34,7 @@ class Game {
 
     canMoveAt(x, y) {
         if (this.isGameOver()) return false;
-        return this.getTile(x, y).color === this.currentTurn;
+        return this.getTile(x, y).color === this.currentTurn && this.getTile(x, y).value > 0;
     }
 
     move(x, y) {
@@ -99,6 +99,7 @@ class Game {
             this.addToTile(p.x, p.y, amountAdded, tile.color);
         })
         tile.value = 0;
+        tile.color = 0;
     }
 
     reset() {
