@@ -5,7 +5,16 @@ const DEFAULT_CONFIG = {
     splitAt: 4,
     multiplyAtLargeSplits: false,
     amountOfPlayers: 2,
-    startingPositions: [[{ x: 1, y: 3, value: 3 }], [{ x: 3, y: 1, value: 3 }], [{ x: 1, y: 1, value: 3 }], [{ x: 3, y: 3, value: 3 }]]
+    startingPositions: [
+        [{ x: 1, y: 3, value: 3 }],
+        [{ x: 3, y: 1, value: 3 }],
+        [{ x: 1, y: 1, value: 3 }],
+        [{ x: 3, y: 3, value: 3 }],
+        [{ x: 1, y: 2, value: 3 }],
+        [{ x: 2, y: 1, value: 3 }],
+        [{ x: 2, y: 3, value: 3 }],
+        [{ x: 3, y: 2, value: 3 }],
+    ]
 }
 
 class Game {
@@ -39,7 +48,7 @@ class Game {
 
     move(x, y) {
         this.addToTile(x, y, 1, this.currentTurn);
-        this.currentTurn = this.currentTurn % this.config.amountOfPlayers + 1;
+        this.advanceTurn();
     }
 
     addToTile(x, y, value, color) {
@@ -91,6 +100,15 @@ class Game {
         })
         tile.value = 0;
         tile.color = 0;
+    }
+
+    advanceTurn() {
+        this.currentTurn = this.currentTurn % this.config.amountOfPlayers + 1;
+        if (this.isPlayerEliminated(this.currentTurn)) this.advanceTurn();
+    }
+
+    isPlayerEliminated(color) {
+        return !this.tiles.some(t => t.color === color);
     }
 
     getVictor() {

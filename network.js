@@ -123,8 +123,9 @@ const Network = {
                 break;
             case 'move':
                 if (member.id !== this.drone.clientId && SceneManager.inScene(SCENE_TYPE.GAME)) {
-                    SceneManager.scene.game.move(data.content.col, data.content.row);
-                    SceneManager.scene.game.resolveAll();
+                    // SceneManager.scene.game.move(data.content.col, data.content.row);
+                    // SceneManager.scene.game.resolveAll();
+                    SceneManager.scene.inputManager.processRemoteInput(data.content.col, data.content.row);
                     SceneManager.scene.updateBoard();
                 }
                 break;

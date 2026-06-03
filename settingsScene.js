@@ -4,7 +4,7 @@ class SettingsScene extends Scene {
         this.container = null;
         this.settings = {
             playerCount: 2,
-            players: [{ type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }],
+            players: [{ type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }, { type: PLAYER_TYPE.HUMAN_LOCAL }],
             boardSize: 5,
             singularExplosions: false,
             shuffleOrder: true,
@@ -26,7 +26,7 @@ class SettingsScene extends Scene {
 
     draw() {
         this.container.removeChildren();
-        const hasRemote = this.settings.players.slice(0, this.settings.playerCount).some(p => p.type === 'human-remote');
+        const hasRemote = this.settings.players.slice(0, this.settings.playerCount).some(p => p.type === PLAYER_TYPE.HUMAN_REMOTE);
         const W = this.app.renderer.width;
         const cx = Math.floor(W / 2);
         let y = 40;
@@ -57,9 +57,9 @@ class SettingsScene extends Scene {
 
         // --- Per-player type ---
         const PLAYER_OPTIONS = [
-            { label: 'Stacjonarny', value: 'human-stationary' },
-            { label: 'Zdalny', value: 'human-remote' },
-            { label: 'Bot - łatwy', value: 'cpu' },
+            { label: 'Stacjonarny', value: PLAYER_TYPE.HUMAN_LOCAL },
+            { label: 'Zdalny', value: PLAYER_TYPE.HUMAN_REMOTE },
+            { label: 'Bot - łatwy', value: PLAYER_TYPE.BOT_EASY },
         ];
         this._addLabel('Typy graczy:', cx, y, LABEL_STYLE);
         y += ROW;

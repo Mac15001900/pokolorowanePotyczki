@@ -1,12 +1,3 @@
-const SCENE_TYPE = {
-    LOADING: 0,
-    MAIN_MENU: 1,
-    PREPARING_GAME: 2,
-    GAME: 3,
-    SETTINGS: 4,
-}
-
-
 class Scene {
     constructor(type) {
         this.type = type;

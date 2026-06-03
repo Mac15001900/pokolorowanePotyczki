@@ -7,7 +7,7 @@ class BoardScene extends Scene {
         this.stageEl = document.getElementById('stage');
         this.gridContainer = null;
         this.tokensContainer = null;
-        this.config = {
+        this.boardConfig = {
             cols: 5,
             rows: 5,
             baseTileSize: 64
@@ -28,10 +28,10 @@ class BoardScene extends Scene {
     get app() { return window.app; }
 
     start(settings) {
-        this.config.cols = settings.boardSize;
-        this.config.rows = settings.boardSize;
+        this.boardConfig.cols = settings.boardSize;
+        this.boardConfig.rows = settings.boardSize;
         this.updateTileSize();
-        let gameConfig = { width: this.config.cols, height: this.config.rows, amountOfPlayers: settings.playerCount };
+        let gameConfig = { width: this.boardConfig.cols, height: this.boardConfig.rows, amountOfPlayers: settings.playerCount };
         if (settings.singularExplosions) {
             gameConfig.multiplyAtLargeSplits = false;
             gameConfig.maxValue = 4;
@@ -41,6 +41,7 @@ class BoardScene extends Scene {
         }
         this.playerData = settings.players;
         this.game = new Game(gameConfig);
+        this.inputManager = new InputManager(this.game, settings, this.boardConfig);
         this.initBoard();
     }
 
@@ -61,10 +62,10 @@ class BoardScene extends Scene {
     }
 
     updateTileSize() {
-        if (this.config.baseTileSize * this.config.cols > window.innerWidth) {
-            this.config.tileSize = Math.floor(window.innerWidth / this.config.cols) - 1;
+        if (this.boardConfig.baseTileSize * this.boardConfig.cols > window.innerWidth) {
+            this.boardConfig.tileSize = Math.floor(window.innerWidth / this.boardConfig.cols) - 1;
         } else {
-            this.config.tileSize = this.config.baseTileSize;
+            this.boardConfig.tileSize = this.boardConfig.baseTileSize;
         }
     }
 
@@ -93,7 +94,7 @@ class BoardScene extends Scene {
     }
 
     centerBoardInStage() {
-        const { config, app, gridContainer, tokensContainer } = this;
+        const { boardConfig: config, app, gridContainer, tokensContainer } = this;
         const boardW = config.cols * config.tileSize;
         const boardH = config.rows * config.tileSize;
         app.boardContainer.x = Math.round((app.renderer.width - boardW) / 2);
@@ -105,7 +106,7 @@ class BoardScene extends Scene {
     }
 
     buildGrid() {
-        const { config, gridContainer, game } = this;
+        const { boardConfig: config, gridContainer, game } = this;
         gridContainer.removeChildren();
 
         const g = new PIXI.Graphics();
@@ -162,7 +163,7 @@ class BoardScene extends Scene {
     }
 
     drawAllTokens() {
-        const { tokensContainer, config, game } = this;
+        const { tokensContainer, boardConfig: config, game } = this;
         tokensContainer.removeChildren();
         const ts = config.tileSize;
 
@@ -223,19 +224,13 @@ class BoardScene extends Scene {
     }
 
     clickTile(col, row) {
-        const { config, game } = this;
-        if (col < 0 || row < 0 || col >= config.cols || row >= config.rows) return;
-        if (!this.canPlay()) return;
-        if (!game.canMoveAt(col, row)) return;
-        Network.sendMessage('move', { col, row });
-        game.move(col, row);
-        game.resolveAll();
+        this.inputManager.processLocalInput(col, row);
         this.drawAllTokens();
         this.drawBorder();
     }
 
     drawBorder() {
-        const { config, game, app, PLAYER_COLORS, PLAYER_NAMES_MIANOWNIK, PLAYER_NAMES_DOPEŁNIACZ } = this;
+        const { boardConfig: config, game, app, PLAYER_COLORS, PLAYER_NAMES_MIANOWNIK, PLAYER_NAMES_DOPEŁNIACZ } = this;
         let color = PLAYER_COLORS[game.currentTurn];
         let text = `Tura gracza ${PLAYER_NAMES_DOPEŁNIACZ[game.currentTurn]}.`;
         if (game.currentTurn === window.userPlayerId) text = "Twoja tura.";
@@ -303,7 +298,7 @@ class BoardScene extends Scene {
     }
 
     canPlay() {
-        return !this.game.isGameOver() && this.game.currentTurn === window.userPlayerId && Network.members.length >= 2;
+        return this.inputManager.needsLocalInput();
     }
 
     setupInteraction() {
