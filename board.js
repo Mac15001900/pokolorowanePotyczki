@@ -20,9 +20,9 @@ class BoardScene extends Scene {
             validHiglight: "ffffff",
             inValidHiglight: "333355",
         };
-        this.PLAYER_COLORS = ["fcf0cc", "009ffd", "f76c5e"];
-        this.PLAYER_NAMES_MIANOWNIK = ["neutralny", "niebieski", "czerwony"];
-        this.PLAYER_NAMES_DOPEŁNIACZ = ["neutralnego", "niebieskiego", "czerwonego"];
+        this.PLAYER_COLORS = [0xfcf0cc, 0x009ffd, 0xf76c5e, 0x44dd88, 0xffd166, 0xcc88ff, 0xff9944, 0x44eedd, 0xff66aa];
+        this.PLAYER_NAMES_MIANOWNIK = ["neutralny", "niebieski", "czerwony", "zielony", "żółty", "fioletowy", "pomarańczowy", "seledynowy", "różowy"];
+        this.PLAYER_NAMES_DOPEŁNIACZ = ["neutralnego", "niebieskiego", "czerwonego", "zielonego", "żółtego", "fioletowego", "pomarańczowego", "seledynowego", "różowego"];
     }
 
     get app() { return window.app; }
@@ -225,7 +225,7 @@ class BoardScene extends Scene {
 
     drawBorder() {
         const { config, game, app, PLAYER_COLORS, PLAYER_NAMES_MIANOWNIK, PLAYER_NAMES_DOPEŁNIACZ } = this;
-        let color = parseInt(PLAYER_COLORS[game.currentTurn], 16);
+        let color = PLAYER_COLORS[game.currentTurn];
         let text = `Tura gracza ${PLAYER_NAMES_DOPEŁNIACZ[game.currentTurn]}.`;
         if (game.currentTurn === window.userPlayerId) text = "Twoja tura.";
         if (Network.members) {
@@ -236,7 +236,7 @@ class BoardScene extends Scene {
         const victor = game.getVictor();
         if (victor) {
             text = `Wygrywa gracz ${PLAYER_NAMES_MIANOWNIK[victor]}!`;
-            color = parseInt(PLAYER_COLORS[victor], 16);
+            color = PLAYER_COLORS[victor];
         }
 
         if (app.boardBorder) app.boardBorder.destroy();
@@ -297,6 +297,10 @@ class BoardScene extends Scene {
 
     setupInteraction() {
         this.app.canvas.addEventListener('contextmenu', (ev) => { ev.preventDefault(); });
+    }
+
+    end() {
+        this.app.boardContainer.destroy({ children: true });
     }
 }
 

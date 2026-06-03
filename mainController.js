@@ -3,6 +3,7 @@ const SCENE_TYPE = {
     MAIN_MENU: 1,
     PREPARING_GAME: 2,
     GAME: 3,
+    SETTINGS: 4,
 }
 
 
@@ -91,6 +92,9 @@ const SceneManager = {
                 break;
             case SCENE_TYPE.GAME:
                 this.scene = new BoardScene();
+                break;
+            case SCENE_TYPE.SETTINGS:
+                this.scene = new SettingsScene();
                 break;
         }
         this.scene.start(...args);
