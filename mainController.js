@@ -76,7 +76,7 @@ const SceneManager = {
                 this.scene = new Scene(SCENE_TYPE.LOADING);
                 break;
             case SCENE_TYPE.MAIN_MENU:
-                // this.scene = new MainMenuScene();
+                this.scene = new MainMenuScene();
                 break;
             case SCENE_TYPE.PREPARING_GAME:
                 // this.scene = new PreparingGameScene();
