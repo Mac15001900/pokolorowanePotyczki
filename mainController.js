@@ -29,6 +29,8 @@ const SceneManager = {
 
     sceneType: SCENE_TYPE.LOADING,
     scene: new Scene(SCENE_TYPE.LOADING),
+    lastResize: 0,
+    queuedResize: false,
 
     async init() {
         this.initPixi();
@@ -54,11 +56,23 @@ const SceneManager = {
     },
 
     update() {
+        let now = Date.now();
         this.scene.update();
+        if (this.queuedResize && this.lastResize + 25 < now) {
+            this.lastResize = now;
+            this.scene.onResize();
+            this.queuedResize = false;
+        }
+        window.requestAnimationFrame(() => this.update());
     },
 
     onResize() {
-        this.scene.onResize();
+        let now = Date.now();
+        if (this.lastResize + 25 < now) {
+            this.lastResize = now;
+            this.scene.onResize();
+        }
+        this.queuedResize = true; //We always do this, since the event might fire before the dimensions change
         /*if (window.app) {
             const stageEl = document.getElementById('stage');
             window.app.renderer.resize(stageEl.clientWidth, stageEl.clientHeight);
@@ -86,6 +100,9 @@ const SceneManager = {
                 break;
             case SCENE_TYPE.SETTINGS:
                 this.scene = new SettingsScene();
+                break;
+            case SCENE_TYPE.JOINING_GAME:
+                this.scene = new JoiningGameScene();
                 break;
         }
         this.scene.start(...args);
