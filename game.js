@@ -5,16 +5,6 @@ const DEFAULT_CONFIG = {
     splitAt: 4,
     multiplyAtLargeSplits: false,
     amountOfPlayers: 2,
-    startingPositions: [
-        [{ x: 1, y: 3, value: 3 }],
-        [{ x: 3, y: 1, value: 3 }],
-        [{ x: 1, y: 1, value: 3 }],
-        [{ x: 3, y: 3, value: 3 }],
-        [{ x: 1, y: 2, value: 3 }],
-        [{ x: 2, y: 1, value: 3 }],
-        [{ x: 2, y: 3, value: 3 }],
-        [{ x: 3, y: 2, value: 3 }],
-    ]
 }
 
 class Game {
@@ -32,9 +22,10 @@ class Game {
     }
 
     addStartingPositions() {
+        let positions = this.makeStartingPositions(this.config.amountOfPlayers, this.config.width, this.config.height);
         for (let playerId = 1; playerId <= this.config.amountOfPlayers; playerId++) {
-            for (let i = 0; i < this.config.startingPositions[playerId - 1].length; i++) {
-                const { x, y, value } = this.config.startingPositions[playerId - 1][i];
+            for (let i = 0; i < positions[playerId - 1].length; i++) {
+                const { x, y, value } = positions[playerId - 1][i];
                 if (x === undefined || y == undefined || value == undefined) console.error("No starting position specified for player " + playerId);
                 this.addToTile(x, y, value, playerId);
             }
@@ -48,6 +39,7 @@ class Game {
 
     move(x, y) {
         this.addToTile(x, y, 1, this.currentTurn);
+        this.resolveAll();
         this.advanceTurn();
     }
 
@@ -104,7 +96,7 @@ class Game {
 
     advanceTurn() {
         this.currentTurn = this.currentTurn % this.config.amountOfPlayers + 1;
-        if (this.isPlayerEliminated(this.currentTurn)) this.advanceTurn();
+        while (this.isPlayerEliminated(this.currentTurn)) this.advanceTurn();
     }
 
     isPlayerEliminated(color) {
@@ -112,7 +104,8 @@ class Game {
     }
 
     getVictor() {
-        let color = this.tiles.find(t => t.color > 0).color;
+        let color = this.tiles.find(t => t.color > 0)?.color;
+        if (!color) return 0;
         if (this.tiles.every(t => t.color === color || t.color === 0)) return color;
         else return 0;
     }
@@ -128,5 +121,27 @@ class Game {
         })
         this.addStartingPositions();
         this.currentTurn = 1;
+    }
+
+    makeStartingPositions(amountOfPlayers, width, height) {
+        let positions = [];
+        for (let i = 1; i <= amountOfPlayers; i++) {
+            let x = 0, y = 0;
+            switch (i) {
+                case 1: x = 1; y = height - 2; break;
+                case 2: x = width - 2; y = 1; break;
+                case 3: x = 1; y = 1; break;
+                case 4: x = width - 2; y = height - 2; break;
+                case 5: x = 1; y = Math.floor(height / 2); break;
+                case 6: x = Math.floor(width / 2); y = height - 2; break;
+                case 7: x = width - 2; y = Math.floor(height / 2); break;
+                case 8: x = Math.floor(width / 2); y = 1; break;
+            }
+            if (height % 2 == 0 && i === 7) y--;
+            if (width % 2 == 0 && i === 8) x--;
+            positions.push([{ x, y, value: 3 }]);
+        }
+        console.log(positions);
+        return positions;
     }
 }
