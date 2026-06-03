@@ -1,36 +1,53 @@
 // PixiJS Grid Base — board.js
 // Uses Pixi v8
 
-const Board = {
-    stageEl: document.getElementById('stage'),
-    app: null,
-    gridContainer: null,
-    tokensContainer: null,
-    config: {
-        cols: 5,
-        rows: 5,
-        baseTileSize: 64
-    },
-    tokenMap: [],
-    game: null,
+class BoardScene extends Scene {
+    constructor() {
+        super(SCENE_TYPE.GAME);
+        this.stageEl = document.getElementById('stage');
+        this.gridContainer = null;
+        this.tokensContainer = null;
+        this.config = {
+            cols: 5,
+            rows: 5,
+            baseTileSize: 64
+        };
+        this.game = null;
+        this.UI_COLORS = {
+            grid: "fcf0cc",
+            background: "46494c",
+            extra: "d90368",
+            validHiglight: "ffffff",
+            inValidHiglight: "333355",
+        };
+        this.PLAYER_COLORS = ["fcf0cc", "009ffd", "f76c5e"];
+        this.PLAYER_NAMES_MIANOWNIK = ["neutralny", "niebieski", "czerwony"];
+        this.PLAYER_NAMES_DOPEŁNIACZ = ["neutralnego", "niebieskiego", "czerwonego"];
+    }
 
-    UI_COLORS: {
-        grid: "fcf0cc",
-        background: "46494c",
-        extra: "d90368",
-        validHiglight: "ffffff",
-        inValidHiglight: "333355",
-    },
-    PLAYER_COLORS: ["fcf0cc", "009ffd", "f76c5e"],
-    PLAYER_NAMES_MIANOWNIK: ["neutralny", "niebieski", "czerwony"],
-    PLAYER_NAMES_DOPEŁNIACZ: ["neutralnego", "niebieskiego", "czerwonego"],
+    get app() { return window.app; }
 
-    init() {
+    start() {
         this.updateTileSize();
         this.game = new Game({ width: this.config.cols, height: this.config.rows });
-        this.initTokenMap();
-        this.initPixi();
-    },
+        this.initBoard();
+    }
+
+    update() {
+        super.update();
+        this.centerBoardInStage();
+    }
+
+    onMemberUpdate() {
+        super.onMemberUpdate();
+        this.drawBorder();
+    }
+
+    onResize() {
+        super.onResize();
+        this.updateTileSize();
+        this.fitCanvasToWindow();
+    }
 
     updateTileSize() {
         if (this.config.baseTileSize * this.config.cols > window.innerWidth) {
@@ -38,25 +55,9 @@ const Board = {
         } else {
             this.config.tileSize = this.config.baseTileSize;
         }
-    },
+    }
 
-    async initPixi() {
-        const { stageEl, config } = this;
-        if (this.app) {
-            this.app.destroy(true, { children: true, texture: true, baseTexture: true });
-            stageEl.innerHTML = '';
-        }
-
-        this.app = new PIXI.Application();
-        await this.app.init({
-            backgroundColor: 0x222222,
-            resizeTo: stageEl,
-            resolution: window.devicePixelRatio || 1,
-            autoDensity: true
-        });
-
-        stageEl.appendChild(this.app.canvas);
-
+    initBoard() {
         this.gridContainer = new PIXI.Container();
         this.tokensContainer = new PIXI.Container();
 
@@ -67,21 +68,18 @@ const Board = {
         this.app.stage.addChild(boardContainer);
         this.app.boardContainer = boardContainer;
 
-        this.initTokenMap();
         this.buildGrid();
         this.centerBoardInStage();
         this.setupInteraction();
         this.drawAllTokens();
         this.drawBorder();
-
-        window.requestAnimationFrame(() => this.centerBoardInStage());
-    },
+    }
 
     fitCanvasToWindow() {
         if (!this.app || !this.app.boardContainer) return;
         this.app.renderer.resize(this.stageEl.clientWidth, this.stageEl.clientHeight);
         this.centerBoardInStage();
-    },
+    }
 
     centerBoardInStage() {
         const { config, app, gridContainer, tokensContainer } = this;
@@ -93,7 +91,7 @@ const Board = {
         gridContainer.y = 0;
         tokensContainer.x = 0;
         tokensContainer.y = 0;
-    },
+    }
 
     buildGrid() {
         const { config, gridContainer, game } = this;
@@ -150,15 +148,7 @@ const Board = {
             const row = Math.floor(pos.y / ts);
             this.clickTile(col, row);
         });
-    },
-
-    initTokenMap() {
-        const { config } = this;
-        this.tokenMap = new Array(config.rows);
-        for (let r = 0; r < config.rows; r++) {
-            this.tokenMap[r] = new Array(config.cols).fill(0);
-        }
-    },
+    }
 
     drawAllTokens() {
         const { tokensContainer, config, game } = this;
@@ -189,12 +179,12 @@ const Board = {
                 tokensContainer.addChild(g);
             }
         }
-    },
+    }
 
     updateBoard() {
         this.drawAllTokens();
         this.drawBorder();
-    },
+    }
 
     getDotPositions(n, spread) {
         const cols = Math.ceil(Math.sqrt(n));
@@ -219,7 +209,7 @@ const Board = {
             }
         }
         return positions;
-    },
+    }
 
     clickTile(col, row) {
         const { config, game } = this;
@@ -231,7 +221,7 @@ const Board = {
         game.resolveAll();
         this.drawAllTokens();
         this.drawBorder();
-    },
+    }
 
     drawBorder() {
         const { config, game, app, PLAYER_COLORS, PLAYER_NAMES_MIANOWNIK, PLAYER_NAMES_DOPEŁNIACZ } = this;
@@ -299,20 +289,15 @@ const Board = {
             app.boardContainer.addChild(btn);
             app.resetButton = btn;
         }
-    },
+    }
 
     canPlay() {
         return !this.game.isGameOver() && this.game.currentTurn === window.userPlayerId && Network.members.length >= 2;
-    },
+    }
 
     setupInteraction() {
         this.app.canvas.addEventListener('contextmenu', (ev) => { ev.preventDefault(); });
-    },
-};
+    }
+}
 
-window.addEventListener('resize', () => {
-    if (!Board.app) return;
-    Board.fitCanvasToWindow();
-});
 
-Board.init();

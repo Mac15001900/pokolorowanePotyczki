@@ -33,7 +33,7 @@ const Network = {
                     this.gameState.received = true;
                 }
                 window.userPlayerId = this.members.length;
-                Board.updateBoard();
+                SceneManager.onMemberUpdate();
             });
 
             room.on('member_join', member => {
@@ -43,7 +43,7 @@ const Network = {
                     this.gameState.memberData = this.members;
                     this.sendMessage('welcome', this.gameState);
                 }
-                Board.updateBoard();
+                SceneManager.onMemberUpdate();
             });
 
             room.on('member_leave', ({ id }) => {
@@ -122,15 +122,17 @@ const Network = {
                 }
                 break;
             case 'move':
-                if (member.id !== this.drone.clientId) {
-                    Board.game.move(data.content.col, data.content.row);
-                    Board.game.resolveAll();
-                    Board.updateBoard();
+                if (member.id !== this.drone.clientId && SceneManager.inScene(SCENE_TYPE.GAME)) {
+                    SceneManager.scene.game.move(data.content.col, data.content.row);
+                    SceneManager.scene.game.resolveAll();
+                    SceneManager.scene.updateBoard();
                 }
                 break;
             case 'reset':
-                Board.game.reset();
-                Board.updateBoard();
+                if (SceneManager.inScene(SCENE_TYPE.GAME)) {
+                    SceneManager.scene.game.reset();
+                    SceneManager.scene.updateBoard();
+                }
                 break;
             default:
                 console.error('Unkown message type received: ' + data.type);

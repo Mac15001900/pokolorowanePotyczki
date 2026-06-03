@@ -69,21 +69,12 @@ class Game {
         let count = 0;
         while (!this.isResolved()) {
             this.resolveStep();
-            if (count > 1000) {
+            count++;
+            if (count > 10000) {
                 console.error("Potential infinite loop in resolve. Stopping");
                 return;
             }
         }
-    }
-
-    getVictor() {
-        let color = this.tiles.find(t => t.color > 0).color;
-        if (this.tiles.every(t => t.color === color || t.color === 0)) return color;
-        else return 0;
-    }
-
-    isGameOver() {
-        return this.getVictor() > 0;
     }
 
     splitTile(x, y) {
@@ -100,6 +91,16 @@ class Game {
         })
         tile.value = 0;
         tile.color = 0;
+    }
+
+    getVictor() {
+        let color = this.tiles.find(t => t.color > 0).color;
+        if (this.tiles.every(t => t.color === color || t.color === 0)) return color;
+        else return 0;
+    }
+
+    isGameOver() {
+        return this.getVictor() > 0;
     }
 
     reset() {
