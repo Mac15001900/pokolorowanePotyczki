@@ -4,6 +4,7 @@ const SCENE_TYPE = {
     PREPARING_GAME: 2,
     GAME: 3,
     SETTINGS: 4,
+    JOINING_GAME: 5,
 }
 
 const PLAYER_TYPE = {

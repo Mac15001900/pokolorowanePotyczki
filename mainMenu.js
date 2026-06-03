@@ -2,7 +2,6 @@ class MainMenuScene extends Scene {
     constructor() {
         super(SCENE_TYPE.MAIN_MENU);
         this.container = null;
-        this._joinInput = null;
     }
 
     get app() { return window.app; }
@@ -10,8 +9,6 @@ class MainMenuScene extends Scene {
     start() {
         this.container = new PIXI.Container();
         this.app.stage.addChild(this.container);
-        this._joinInput = this._createJoinInput();
-        document.getElementById('stage').appendChild(this._joinInput);
         this.draw();
     }
 
@@ -41,60 +38,18 @@ class MainMenuScene extends Scene {
         this.container.addChild(subtitle);
 
         // --- New game button ---
-        const newBtn = this._makeButton('Nowa gra', 0xfcf0cc, 0x111111, 200, 48);
+        const newBtn = this._makeButton('Stwórz grę', 0xfcf0cc, 0x111111, 200, 48);
         newBtn.x = cx - 100;
         newBtn.y = cy - 24;
         newBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.SETTINGS));
         this.container.addChild(newBtn);
 
         // --- Join game ---
-        const JOIN_Y = cy + 50;
         const joinBtn = this._makeButton('Dołącz do gry', 0x444444, 0xeeeeee, 200, 48);
         joinBtn.x = cx - 100;
-        joinBtn.y = JOIN_Y;
-        joinBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.GAME, { join: this._joinInput.value.trim() }));
+        joinBtn.y = cy + 50;
+        joinBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.JOINING_GAME));
         this.container.addChild(joinBtn);
-
-        const INPUT_Y = JOIN_Y + 62;
-        this._positionJoinInput(cx, INPUT_Y);
-        this._joinInput.style.display = 'block';
-
-        const hint = new PIXI.Text({ text: 'Nazwa pokoju', style: { fill: 0x666666, fontSize: 13 } });
-        hint.anchor.set(0.5, 0);
-        hint.x = cx;
-        hint.y = INPUT_Y - 20;
-        this.container.addChild(hint);
-    }
-
-    _createJoinInput() {
-        const el = document.createElement('input');
-        el.type = 'text';
-        el.placeholder = 'Wpisz nazwę pokoju';
-        Object.assign(el.style, {
-            position: 'absolute',
-            background: '#333',
-            color: '#eee',
-            border: '1px solid #555',
-            borderRadius: '6px',
-            fontSize: '15px',
-            outline: 'none',
-            padding: '0 12px',
-            boxSizing: 'border-box',
-            textAlign: 'center',
-        });
-        return el;
-    }
-
-    _positionJoinInput(cx, y) {
-        const DW = 200, DH = 38;
-        const canvas = this.app.canvas;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = rect.width / this.app.renderer.width;
-        const scaleY = rect.height / this.app.renderer.height;
-        this._joinInput.style.left   = `${rect.left + Math.round(cx - DW / 2) * scaleX}px`;
-        this._joinInput.style.top    = `${rect.top  + Math.round(y) * scaleY}px`;
-        this._joinInput.style.width  = `${DW * scaleX}px`;
-        this._joinInput.style.height = `${DH * scaleY}px`;
     }
 
     _makeButton(text, bgColor, textColor, w, h) {
@@ -113,7 +68,7 @@ class MainMenuScene extends Scene {
         btn.addChild(lbl);
 
         btn.on('pointerover', () => { bg.tint = 0xbbbbbb; });
-        btn.on('pointerout',  () => { bg.tint = 0xffffff; });
+        btn.on('pointerout', () => { bg.tint = 0xffffff; });
 
         return btn;
     }
@@ -123,7 +78,6 @@ class MainMenuScene extends Scene {
     }
 
     end() {
-        this._joinInput.remove();
         this.container.destroy({ children: true });
     }
 }

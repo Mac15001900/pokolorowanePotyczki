@@ -4,7 +4,7 @@ var debugConfig = {
 	"random_server": false, //Skips room promt, uses a server with a random name
 	"random_username": true, //Skip username prompt, uses a random username
 	"disable_messages": false, //Disables sending network messages
-	"log_messages": false, //Logs all received messages in console
+	"log_messages": true, //Logs all received messages in console
 }
 
 //Handle complete debug disabling

@@ -1,6 +1,3 @@
-// PixiJS Grid Base — board.js
-// Uses Pixi v8
-
 class BoardScene extends Scene {
     constructor() {
         super(SCENE_TYPE.GAME);
@@ -27,10 +24,13 @@ class BoardScene extends Scene {
 
     get app() { return window.app; }
 
-    start(settings) {
+    start(settings, isHost, game) {
+        this.settings = settings;
+        this.isHost = isHost;
         this.boardConfig.cols = settings.boardSize;
         this.boardConfig.rows = settings.boardSize;
         this.updateTileSize();
+        this.playerData = settings.players;
         let gameConfig = { width: this.boardConfig.cols, height: this.boardConfig.rows, amountOfPlayers: settings.playerCount };
         if (settings.singularExplosions) {
             gameConfig.multiplyAtLargeSplits = false;
@@ -39,9 +39,8 @@ class BoardScene extends Scene {
             gameConfig.multiplyAtLargeSplits = true;
             gameConfig.maxValue = Infinity;
         }
-        this.playerData = settings.players;
         this.game = new Game(gameConfig);
-        this.inputManager = new InputManager(this.game, settings, this.boardConfig);
+        this.inputManager = new InputManager(this.game, settings, isHost);
         this.initBoard();
     }
 
@@ -232,13 +231,7 @@ class BoardScene extends Scene {
     drawBorder() {
         const { boardConfig: config, game, app, PLAYER_COLORS, PLAYER_NAMES_MIANOWNIK, PLAYER_NAMES_DOPEŁNIACZ } = this;
         let color = PLAYER_COLORS[game.currentTurn];
-        let text = `Tura gracza ${PLAYER_NAMES_DOPEŁNIACZ[game.currentTurn]}.`;
-        if (game.currentTurn === window.userPlayerId) text = "Twoja tura.";
-        if (Network.members) {
-            if (Network.members.length === 1) text = "Oczekiwanie na drugiego gracza...";
-        } else {
-            text = "Łączenie...";
-        }
+        let text = this.inputManager.getTurnDescription();
         const victor = game.getVictor();
         if (victor) {
             text = `Wygrywa gracz ${PLAYER_NAMES_MIANOWNIK[victor]}!`;

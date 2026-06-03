@@ -5,11 +5,11 @@ const Network = {
     members: [],
     drone: null,
     roomName: null,
+    ready: false,
+    ROOM_BASE: 'observable-main-',
 
     init() {
-        const ROOM_BASE = 'observable-main-';
         const CHANNEL_ID = '7cWu8Jb0yB8VhORw';
-        this.roomName = ROOM_BASE + this.getRoomName();
 
         this.drone = new ScaleDrone(CHANNEL_ID, {
             data: {
@@ -20,39 +20,56 @@ const Network = {
         this.drone.on('open', error => {
             if (error) return console.error(error);
             console.log('Successfully connected to Scaledrone');
+            this.ready = true;
+        });
+    },
 
-            const room = this.drone.subscribe(this.roomName);
-            room.on('open', error => {
-                if (error) return console.error(error);
-                console.log('Successfully joined room');
-            });
+    connentToRoom(roomName) {
+        if (!this.ready) {
+            setTimeout(() => this.connentToRoom(roomName), 100);
+            return;
+        }
+        this.roomName = this.ROOM_BASE + roomName;
+        const room = this.drone.subscribe(this.roomName);
+        room.on('open', error => {
+            if (error) return console.error(error);
+            console.log('Successfully joined room');
+        });
 
-            room.on('members', m => {
-                this.members = m.filter(x => !this.isDebugger(x));
-                if (this.members.length === 1) {
-                    this.gameState.received = true;
-                }
-                window.userPlayerId = this.members.length;
-                SceneManager.onMemberUpdate();
-            });
+        room.on('members', m => {
+            this.members = m.filter(x => !this.isDebugger(x));
+            if (SceneManager.inScene(SCENE_TYPE.GAME) && SceneManager.scene.isHost && this.members.length > 1) {
+                this.sendGameInfo();
+            }
+            window.userPlayerId = this.members.length;
+            SceneManager.onMemberUpdate();
+        });
 
-            room.on('member_join', member => {
-                if (this.isDebugger(member)) return;
-                this.members.push(member);
-                if (this.gameState.received) {
-                    this.gameState.memberData = this.members;
-                    this.sendMessage('welcome', this.gameState);
-                }
-                SceneManager.onMemberUpdate();
-            });
+        room.on('member_join', member => {
+            if (this.isDebugger(member)) return;
+            this.members.push(member);
+            SceneManager.onMemberUpdate();
+            if (SceneManager.inScene(SCENE_TYPE.GAME) && SceneManager.scene.isHost) {
+                this.sendGameInfo();
+            }
+        });
 
-            room.on('member_leave', ({ id }) => {
-                if (!this.getMember(id)) return;
-                const index = this.members.findIndex(member => member.id === id);
-                this.members.splice(index, 1);
-            });
+        room.on('member_leave', ({ id }) => {
+            if (!this.getMember(id)) return;
+            const index = this.members.findIndex(member => member.id === id);
+            this.members.splice(index, 1);
+        });
 
-            room.on('data', (data, serverMember) => this.receiveMessage(data, serverMember));
+        room.on('data', (data, serverMember) => this.receiveMessage(data, serverMember));
+        console.log(room);
+    },
+
+    sendGameInfo() {
+        let scene = SceneManager.scene;
+        this.sendMessage('gameWelcome', {
+            game: scene.game,
+            settings: scene.settings,
+            color: scene.inputManager.colorForNextRemotePlayer(this.members.length - 2),
         });
     },
 
@@ -110,6 +127,7 @@ const Network = {
         if (debugConfig.log_messages) console.log(data);
         if (!serverMember) return;
         const member = this.getMember(serverMember);
+        const content = data.content;
         switch (data.type) {
             case 'general':
                 break;
@@ -133,6 +151,14 @@ const Network = {
                 if (SceneManager.inScene(SCENE_TYPE.GAME)) {
                     SceneManager.scene.game.reset();
                     SceneManager.scene.updateBoard();
+                }
+                break;
+            case 'gameWelcome':
+                if (SceneManager.inScene(SCENE_TYPE.JOINING_GAME)) {
+                    let settings = content.settings;
+                    settings.players.forEach(p => { if (p.type === PLAYER_TYPE.HUMAN_LOCAL) p.type = PLAYER_TYPE.HUMAN_REMOTE });
+                    settings.players[content.color - 1].type = PLAYER_TYPE.HUMAN_LOCAL;
+                    SceneManager.startScene(SCENE_TYPE.GAME, settings, false, content.game);
                 }
                 break;
             default:

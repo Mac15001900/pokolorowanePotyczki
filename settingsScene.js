@@ -143,7 +143,12 @@ class SettingsScene extends Scene {
         startBtn.x = cx - 90; startBtn.y = y;
         startBtn.cursor = canStart ? 'pointer' : 'default';
         if (canStart) {
-            startBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.GAME, this.settings));
+            startBtn.on('pointerdown', () => {
+                Network.connentToRoom(this.settings.roomName.trim());
+                this.settings.players = this.settings.players.slice(0, this.settings.playerCount);
+                console.log('starting game with settings: ', this.settings);
+                SceneManager.startScene(SCENE_TYPE.GAME, this.settings, true);
+            });
         } else {
             startBtn.on('pointerdown', () => {
                 this._roomInput.style.outline = '2px solid #ff4444';
@@ -151,6 +156,14 @@ class SettingsScene extends Scene {
             });
         }
         this.container.addChild(startBtn);
+        y += 42 + 10
+
+        // --- Back button ---
+        const backBtn = this._makeButton('Wróć', 0x444444, 0xeeeeee, 180, 42);
+        backBtn.x = cx - 90;
+        backBtn.y = y;
+        backBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.MAIN_MENU));
+        this.container.addChild(backBtn);
     }
 
     _createRoomInput() {
