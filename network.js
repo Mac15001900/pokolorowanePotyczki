@@ -1,52 +1,146 @@
 if (!debugConfig) window.debugConfig = {}; //If debug config is not present, assume all options are false
 
-//References to dynamic DOM elements
+const Network = {
+    gameState: { received: false, game: null, config: null },
+    members: [],
+    drone: null,
+    roomName: null,
 
+    init() {
+        const ROOM_BASE = 'observable-main-';
+        const CHANNEL_ID = '7cWu8Jb0yB8VhORw';
+        this.roomName = ROOM_BASE + this.getRoomName();
 
-var gameState = { received: false, game: null, config: null }; //GameState, this is shared with any player that joins the game
+        this.drone = new ScaleDrone(CHANNEL_ID, {
+            data: {
+                name: this.getUsername(),
+            },
+        });
 
+        this.drone.on('open', error => {
+            if (error) return console.error(error);
+            console.log('Successfully connected to Scaledrone');
 
-//Name and room selection
-function getUsername() {
-    var name;
-    if (debugConfig.random_username) name = getRandomName();
-    else name = prompt(s.enter_username, "");
+            const room = this.drone.subscribe(this.roomName);
+            room.on('open', error => {
+                if (error) return console.error(error);
+                console.log('Successfully joined room');
+            });
 
-    while (!name) {
-        var name = prompt(s.enter_username_non_empty, "");
-    }
-    myName = name;
-    return (name);
-}
+            room.on('members', m => {
+                this.members = m.filter(x => !this.isDebugger(x));
+                if (this.members.length === 1) {
+                    this.gameState.received = true;
+                }
+                window.userPlayerId = this.members.length;
+                Board.updateBoard();
+            });
 
-function getRandomName() {
-    const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient"];
-    const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill"];
-    const name = adjs[Math.floor(Math.random() * adjs.length)] + "_" + nouns[Math.floor(Math.random() * nouns.length)];
-    return (name);
-}
+            room.on('member_join', member => {
+                if (this.isDebugger(member)) return;
+                this.members.push(member);
+                if (this.gameState.received) {
+                    this.gameState.memberData = this.members;
+                    this.sendMessage('welcome', this.gameState);
+                }
+                Board.updateBoard();
+            });
 
-function getRoomName() {
-    //Check if set by debug options
-    if (debugConfig.dev_server) return "dev";
-    if (debugConfig.random_server) return (Math.random() * 1000) + "";
+            room.on('member_leave', ({ id }) => {
+                if (!this.getMember(id)) return;
+                const index = this.members.findIndex(member => member.id === id);
+                this.members.splice(index, 1);
+            });
 
-    let s = { //TEMP
-        enter_room_name: "Wpisz nazwę pokoju"
-    }
+            room.on('data', (data, serverMember) => this.receiveMessage(data, serverMember));
+        });
+    },
 
-    //Try to get it from the URL
-    var roomFromURL = (new URLSearchParams(window.location.search)).get('room');
-    if (roomFromURL) return roomFromURL;
+    getUsername() {
+        var name;
+        if (debugConfig.random_username) name = this.getRandomName();
+        else name = prompt(s.enter_username, "");
 
-    //If that fails, ask the user for it. If removing DOM, try to make 'shareableLink' accessible another way
-    var chosenName = prompt(s.enter_room_name);
-    while (!chosenName) chosenName = prompt(s.enter_room_name);
-    var shareableLink = encodeURI(window.location.origin + window.location.pathname + "?room=" + chosenName);
-    return chosenName;
-}
+        while (!name) {
+            name = prompt(s.enter_username_non_empty, "");
+        }
+        myName = name;
+        return name;
+    },
 
-//Translation
+    getRandomName() {
+        const adjs = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient"];
+        const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill"];
+        return adjs[Math.floor(Math.random() * adjs.length)] + "_" + nouns[Math.floor(Math.random() * nouns.length)];
+    },
+
+    getRoomName() {
+        if (debugConfig.dev_server) return "dev";
+        if (debugConfig.random_server) return (Math.random() * 1000) + "";
+
+        const s = { enter_room_name: "Wpisz nazwę pokoju" };
+
+        var roomFromURL = (new URLSearchParams(window.location.search)).get('room');
+        if (roomFromURL) return roomFromURL;
+
+        var chosenName = prompt(s.enter_room_name);
+        while (!chosenName) chosenName = prompt(s.enter_room_name);
+        return chosenName;
+    },
+
+    getMember(input) {
+        let id = typeof input === 'object' ? input.id : input;
+        let res = this.members.find(m => m.id === id);
+        if (!res) console.error('Member with id ' + id + ' not found.');
+        return res;
+    },
+
+    isDebugger(member) {
+        return member.authData && member.authData.user_is_from_scaledrone_debugger;
+    },
+
+    sendMessage(type, content) {
+        if (debugConfig.disable_messages) return;
+        const message = { type, content };
+        if (this.members.length === 1) this.receiveMessage(message, this.members[0]);
+        else this.drone.publish({ room: this.roomName, message });
+    },
+
+    receiveMessage(data, serverMember) {
+        if (debugConfig.log_messages) console.log(data);
+        if (!serverMember) return;
+        const member = this.getMember(serverMember);
+        switch (data.type) {
+            case 'general':
+                break;
+            case 'debug':
+                console.log(data.content);
+                break;
+            case 'welcome':
+                if (!this.gameState.received) {
+                    this.gameState = data.content;
+                }
+                break;
+            case 'move':
+                if (member.id !== this.drone.clientId) {
+                    Board.game.move(data.content.col, data.content.row);
+                    Board.game.resolveAll();
+                    Board.updateBoard();
+                }
+                break;
+            case 'reset':
+                Board.game.reset();
+                Board.updateBoard();
+                break;
+            default:
+                console.error('Unkown message type received: ' + data.type);
+        }
+    },
+};
+
+Network.init();
+
+//Translation, might get used one day
 /*
 let lang = 'en'; //Specify default language here (will be used if requested language is not supported)
 const languages = { 'en': enStrings, 'pl': plStrings };
@@ -80,131 +174,3 @@ function translate() {
 
 initLanguage(); //Must be called before any user interaction
 */
-
-//Networking
-const ROOM_BASE = 'observable-main-'
-const CHANNEL_ID = '7cWu8Jb0yB8VhORw';
-let roomName = ROOM_BASE + getRoomName();
-
-function getMember(input) {
-    let id = input;
-    if (typeof input === 'object') id = input.id;
-    let res = members.find(m => m.id === id);
-    if (!res) console.error('Member with id ' + id + ' not found.');
-    return res;
-}
-
-function isDebugger(member) {
-    return member.authData && member.authData.user_is_from_scaledrone_debugger;
-}
-
-function sendMessage(type, content) {
-    if (debugConfig.disable_messages) return;
-    var message = { type: type, content: content };
-    if (members.length === 1) receiveMessage(message, members[0]); //Won't send anything over the network if we're the only player
-    else drone.publish({ room: roomName, message: message });
-}
-
-const drone = new ScaleDrone(CHANNEL_ID, {
-    data: { // Will be sent out as clientData via events
-        name: getUsername(),
-    },
-});
-
-drone.on('open', error => {
-    if (error) {
-        return console.error(error);
-    }
-    console.log('Successfully connected to Scaledrone');
-
-    const room = drone.subscribe(roomName);
-    room.on('open', error => {
-        if (error) {
-            return console.error(error);
-        }
-        console.log('Successfully joined room');
-    });
-
-    // List of currently online members, emitted once
-    room.on('members', m => {
-        members = m.filter(x => !isDebugger(x));
-        if (members.length === 1) {
-            //This is what happens when the player joins an empty room
-            gameState.received = true;
-        }
-        window.userPlayerId = members.length;
-        updateBoard();
-    });
-
-    // User joined the room
-    room.on('member_join', member => {
-        if (isDebugger(member)) return;
-        members.push(member);
-        if (gameState.received) {
-            gameState.memberData = members;
-            sendMessage('welcome', gameState);
-        }
-        updateBoard();
-    });
-
-    // User left the room
-    room.on('member_leave', ({ id }) => {
-        if (!getMember(id)) return; //If they don't exist, it was probably the debugger
-        const index = members.findIndex(member => member.id === id);
-        members.splice(index, 1);
-    });
-
-    room.on('data', receiveMessage);
-
-});
-
-function receiveMessage(data, serverMember) {
-    if (debugConfig.log_messages) console.log(data);
-    if (serverMember) {
-        let member = getMember(serverMember);
-        //console.log(member);
-        switch (data.type) {
-            case 'general': //Example message type no 1
-                break;
-            case 'debug': //Example message type no 2
-                console.log(data.content);
-                break;
-            case 'welcome': //Sent whenever a new player joins the game, informing them of the game state
-                if (!gameState.received) {
-                    //This is what happens after the player joins a non-empty room
-                    gameState = data.content;
-                    //'gs' will now contain 'memberData' with all extra info about members; you might want to copy it to 'members'
-                }
-                break;
-            case 'move':
-                if (member.id !== drone.clientId) {
-                    game.move(data.content.col, data.content.row);
-                    game.resolveAll();
-                    updateBoard();
-                }
-                break;
-            case 'reset':
-                game.reset();
-                updateBoard();
-                break;
-            default: console.error('Unkown message type received: ' + data.type);
-        }
-    } else {
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
