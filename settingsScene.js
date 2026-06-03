@@ -4,9 +4,10 @@ class SettingsScene extends Scene {
         this.container = null;
         this.settings = {
             playerCount: 2,
-            players: [{ type: 'human' }, { type: 'human' }, { type: 'cpu' }, { type: 'cpu' }, { type: 'cpu' }, { type: 'cpu' }, { type: 'cpu' }, { type: 'cpu' }],
+            players: [{ type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }, { type: 'human-stationary' }],
             boardSize: 5,
-            advancedMode: false,
+            singularExplosions: false,
+            shuffleOrder: true,
             roomName: '',
         };
     }
@@ -60,7 +61,7 @@ class SettingsScene extends Scene {
             { label: 'Zdalny', value: 'human-remote' },
             { label: 'Bot - łatwy', value: 'cpu' },
         ];
-        this._addLabel('Typ gracza:', cx, y, LABEL_STYLE);
+        this._addLabel('Typy graczy:', cx, y, LABEL_STYLE);
         y += ROW;
         for (let i = 0; i < this.settings.playerCount; i++) {
             const color = PLAYER_COLORS[i];
@@ -86,6 +87,18 @@ class SettingsScene extends Scene {
         }
         y += 10;
 
+        // --- Turn randomisation ---
+        this._addLabel('Losój kolejność:', cx, y, LABEL_STYLE);
+        y += ROW;
+        const shuffleToggle = this._addToggle(
+            ['Tak', 'Nie'],
+            this.settings.shuffleOrder ? 0 : 1,
+            cx, y,
+            (v) => { this.settings.shuffleOrder = v === 0; this.draw(); }
+        );
+        this.container.addChild(shuffleToggle);
+        y += ROW + 10;
+
         // --- Board size ---
         this._addLabel('Rozmiar planszy:', cx, y, LABEL_STYLE);
         y += ROW;
@@ -104,9 +117,9 @@ class SettingsScene extends Scene {
         y += ROW;
         const advToggle = this._addToggle(
             ['Po n-3', 'Po 1'],
-            this.settings.advancedMode ? 1 : 0,
+            this.settings.singularExplosions ? 1 : 0,
             cx, y,
-            (v) => { this.settings.advancedMode = v === 1; this.draw(); }
+            (v) => { this.settings.singularExplosions = v === 1; this.draw(); }
         );
         this.container.addChild(advToggle);
         y += ROW + 10;
@@ -125,20 +138,27 @@ class SettingsScene extends Scene {
 
         // --- Start button ---
         y += 10;
-        const startBtn = this._makeButton('Rozpocznij grę', 0xfcf0cc, 0x111111, 180, 42);
+        const canStart = !hasRemote || this.settings.roomName.trim() !== '';
+        const startBtn = this._makeButton('Rozpocznij grę', canStart ? 0xfcf0cc : 0x666666, canStart ? 0x111111 : 0x999999, 180, 42);
         startBtn.x = cx - 90; startBtn.y = y;
-        startBtn.on('pointerdown', () => {
-            SceneManager.startScene(SCENE_TYPE.GAME, this.settings);
-        });
+        startBtn.cursor = canStart ? 'pointer' : 'default';
+        if (canStart) {
+            startBtn.on('pointerdown', () => SceneManager.startScene(SCENE_TYPE.GAME, this.settings));
+        } else {
+            startBtn.on('pointerdown', () => {
+                this._roomInput.style.outline = '2px solid #ff4444';
+                setTimeout(() => { this._roomInput.style.outline = 'none'; }, 600);
+            });
+        }
         this.container.addChild(startBtn);
     }
 
     _createRoomInput() {
         const el = document.createElement('input');
         el.type = 'text';
-        el.placeholder = 'Nazwa pokoju';
+        el.placeholder = '';
         el.value = this.settings.roomName;
-        el.addEventListener('input', () => { this.settings.roomName = el.value; });
+        el.addEventListener('input', () => { this.settings.roomName = el.value; this.draw(); });
         Object.assign(el.style, {
             position: 'absolute',
             display: 'none',
@@ -181,7 +201,7 @@ class SettingsScene extends Scene {
         let bx = cx - Math.floor(totalW / 2);
         labels.forEach((lbl, i) => {
             const isActive = values[i] === selected;
-            const btn = this._makeButton(lbl, isActive ? 0xfcf0cc : 0x444444, isActive ? 0x111111 : 0xeeeeee, BW, BH);
+            const btn = this._makeButton(lbl, isActive ? 0x009ffd : 0x444444, isActive ? 0x111111 : 0xeeeeee, BW, BH);
             btn.x = bx; btn.y = y;
             btn.on('pointerdown', () => onChange(values[i]));
             group.addChild(btn);

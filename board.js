@@ -27,9 +27,20 @@ class BoardScene extends Scene {
 
     get app() { return window.app; }
 
-    start() {
+    start(settings) {
+        this.config.cols = settings.boardSize;
+        this.config.rows = settings.boardSize;
         this.updateTileSize();
-        this.game = new Game({ width: this.config.cols, height: this.config.rows });
+        let gameConfig = { width: this.config.cols, height: this.config.rows, amountOfPlayers: settings.playerCount };
+        if (settings.singularExplosions) {
+            gameConfig.multiplyAtLargeSplits = false;
+            gameConfig.maxValue = 4;
+        } else {
+            gameConfig.multiplyAtLargeSplits = true;
+            gameConfig.maxValue = Infinity;
+        }
+        this.playerData = settings.players;
+        this.game = new Game(gameConfig);
         this.initBoard();
     }
 
@@ -166,7 +177,7 @@ class BoardScene extends Scene {
                 const radius = Math.floor((ts - padding * 2) / 2);
 
                 const g = new PIXI.Graphics();
-                const mainColor = [0x66ccff, 0xff5500][game.getTile(c, r).color - 1];
+                const mainColor = this.PLAYER_COLORS[game.getTile(c, r).color];
                 g.circle(cx, cy, radius).fill(mainColor);
 
                 const dotR = Math.max(2, Math.floor(radius * 0.12));
