@@ -59,7 +59,7 @@ class SettingsScene extends Scene {
         const PLAYER_OPTIONS = [
             { label: 'Stacjonarny', value: PLAYER_TYPE.HUMAN_LOCAL },
             { label: 'Zdalny', value: PLAYER_TYPE.HUMAN_REMOTE },
-            { label: 'Bot - łatwy', value: PLAYER_TYPE.BOT_EASY },
+            // { label: 'Bot - łatwy', value: PLAYER_TYPE.BOT_EASY },
         ];
         this._addLabel('Typy graczy:', cx, y, LABEL_STYLE);
         y += ROW;
@@ -88,7 +88,7 @@ class SettingsScene extends Scene {
         y += 10;
 
         // --- Turn randomisation ---
-        this._addLabel('Losój kolejność:', cx, y, LABEL_STYLE);
+        this._addLabel('Losój kolejność (ta opcja jeszcze nie działa):', cx, y, LABEL_STYLE);
         y += ROW;
         const shuffleToggle = this._addToggle(
             ['Tak', 'Nie'],

@@ -139,6 +139,7 @@ class JoiningGameScene extends Scene {
         Network.connentToRoom(this._roomName.trim());
         this.connecting = true;
         console.log('joining room: ', this._roomName.trim());
+        this.draw();
     }
 
     end() {

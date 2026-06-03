@@ -31,7 +31,7 @@ class MainMenuScene extends Scene {
         title.y = cy - 120;
         this.container.addChild(title);
 
-        const subtitle = new PIXI.Text({ text: 'Wybierz opcję, aby rozpocząć', style: SUBTITLE_STYLE });
+        const subtitle = new PIXI.Text({ text: 'Wersja 1.1', style: SUBTITLE_STYLE });
         subtitle.anchor.set(0.5, 0.5);
         subtitle.x = cx;
         subtitle.y = cy - 80;
